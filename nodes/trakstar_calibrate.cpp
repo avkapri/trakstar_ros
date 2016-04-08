@@ -40,8 +40,29 @@
 // Visualization
 #include <tf/transform_broadcaster.h>
 
+//writing to file
+#include <fstream>
+
+
+//for shared_ptr
+#include <boost/shared_ptr.hpp>
+
 using namespace trakstar;
 using std::string;
+
+bool recording = true;
+
+
+struct DataPoint {
+    tf::Vector3 pos;
+    tf::Quaternion q;
+};
+
+void stop_recording(const ros::TimerEvent&)
+{
+    ROS_INFO("stop recording callback triggered");
+    recording = false;
+}
 
 int main(int argc, char **argv)
 {
@@ -72,10 +93,13 @@ int main(int argc, char **argv)
   int num_sen=bird_.getNumberOfSensors();
   ROS_INFO("Number of trakers: %d", num_sen);
 
-  if (num_sen<2) {
-    ROS_ERROR("at least 2 trackers required"); 
-    return -1;
+
+  if(num_sen != 1)
+  {
+      ROS_ERROR("exactly one tracker should be connected");
+      return -1;
   }
+
 
   ROS_INFO("Output is set: position/quaternion");
   for (int i=0; i<num_sen; i++) {
@@ -130,13 +154,13 @@ int main(int argc, char **argv)
   tf::Matrix3x3 trakstar_attach1;
   trakstar_attach1.setEulerYPR(rz1, ry1, rx1);
 
-
-  // Initialize ROS stuff
-  ros::Publisher trakstar_pub = n.advertise<trakstar::TrakstarMsg>("trakstar_msg", 1);
-  ros::Publisher trakstar_raw_pub = n.advertise<trakstar::TrakstarMsg>("trakstar_raw_msg", 1);
-  tf::TransformBroadcaster *broadcaster = 0;
-  if(publish_tf) 
-    broadcaster = new tf::TransformBroadcaster();
+// Is this needed as individual application?
+//  // Initialize ROS stuff
+//  ros::Publisher trakstar_pub = n.advertise<trakstar::TrakstarMsg>("trakstar_msg", 1);
+//  ros::Publisher trakstar_raw_pub = n.advertise<trakstar::TrakstarMsg>("trakstar_raw_msg", 1);
+//  tf::TransformBroadcaster *broadcaster = 0;
+//  if(publish_tf)
+//    broadcaster = new tf::TransformBroadcaster();
 
   // mangle the reported pose into the ROS frame conventions
   const tf::Matrix3x3 ros_to_trakstar( -1,  0,  0,
@@ -144,20 +168,29 @@ int main(int argc, char **argv)
 	                   	      0,  0, -1 );
   ros::Rate loop_rate(frequency);
 
-  while (n.ok())
+  string raw_file;
+  ROS_INFO("Please hold the UID steady and rotate around the center");
+  ROS_INFO("type \"y\" to start recording data");
+  std::cin >> raw_file;
+
+  std::vector<boost::shared_ptr<DataPoint> > recorded_values;
+
+  std::cout << "3" << std::endl;
+  sleep(1000);
+  std::cout << "2" << std::endl;
+  sleep(1000);
+  std::cout << "1" << std::endl;
+  sleep(1000);
+  std::cout << "RECORDING..." << std::endl;
+
+
+
+  ros::Timer timer = n.createTimer(ros::Duration(30), stop_recording);
+
+  std::ofstream myfile("recorded_data.txt", std::ofstream::out);
+
+  while (recording)
   {
-
-
-    //publish data
-    trakstar::TrakstarMsg msg;
-    msg.header.stamp = ros::Time::now();
-    msg.n_tracker = num_sen;
-
-    //publish raw data
-    trakstar::TrakstarMsg msg_raw;
-    msg_raw.header.stamp = ros::Time::now();
-    msg_raw.n_tracker = num_sen;
-
     std::vector<geometry_msgs::TransformStamped> transforms(num_sen);
 
     for( int i = 0; i <num_sen  ; ++i ) 
@@ -166,9 +199,6 @@ int main(int argc, char **argv)
 	tf::Vector3 pos(dX, dY, dZ);
 	tf::Quaternion q(-quat[1], -quat[2], -quat[3], quat[0]);
 	tf::Matrix3x3 mat(q);
-
-	tf::transformTFToMsg(tf::Transform(mat,pos), transforms[i].transform);
-	msg_raw.transform[i]=transforms[i].transform;
 
 	mat=ros_to_trakstar*mat;
 
@@ -181,31 +211,22 @@ int main(int argc, char **argv)
 	  pos=ros_to_trakstar*pos+ mat*trakstar_attach_pos1; 
         }
 
+    boost::shared_ptr<DataPoint> p = boost::make_shared<DataPoint>();
+    p->pos = pos;
+    p->q = q;
+    recorded_values.push_back(p);
 
-	tf::transformTFToMsg(tf::Transform(mat,pos), transforms[i].transform);
+    myfile << pos.x() << " " << pos.y() << " " << pos.z() << " "  <<
+              q.x() << " " << q.y() << " " << q.z() << " " << q.w() << "\n";
 
-	msg.transform[i]=transforms[i].transform;
     }
-    trakstar_pub.publish(msg);
-    trakstar_raw_pub.publish(msg_raw);
-
-
-    if(broadcaster)
-    {
-      std::string frames[4] = {"trakstar_left", "trakstar_right", "trakstar_third", "trakstar_fourth"};
-      for(int kk = 0; kk < num_sen; kk++)
-      {
-        transforms[kk].header.stamp = msg.header.stamp;
-        transforms[kk].header.frame_id = "trakstar_base";
-        transforms[kk].child_frame_id = frames[kk];
-      }
-
-      broadcaster->sendTransform(transforms);
-    }
-
     loop_rate.sleep();
     ros::spinOnce();
   }
+
+  myfile.close();
+
+
 
   delete [] quat;
 }
