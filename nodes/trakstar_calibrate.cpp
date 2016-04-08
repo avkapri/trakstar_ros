@@ -176,18 +176,18 @@ int main(int argc, char **argv)
   std::vector<boost::shared_ptr<DataPoint> > recorded_values;
 
   std::cout << "3" << std::endl;
-  sleep(1000);
+  sleep(1);
   std::cout << "2" << std::endl;
-  sleep(1000);
+  sleep(1);
   std::cout << "1" << std::endl;
-  sleep(1000);
+  sleep(1);
   std::cout << "RECORDING..." << std::endl;
 
 
 
-  ros::Timer timer = n.createTimer(ros::Duration(30), stop_recording);
+  ros::Timer timer = n.createTimer(ros::Duration(10), stop_recording);
 
-  std::ofstream myfile("recorded_data.txt", std::ofstream::out);
+  std::ofstream myfile("/home/devuser/anette/tests/trakstar_test/recorded_data.txt", std::ofstream::out);
 
   while (recording)
   {
@@ -215,6 +215,9 @@ int main(int argc, char **argv)
     p->pos = pos;
     p->q = q;
     recorded_values.push_back(p);
+
+std::cout << pos.x() << " " << pos.y() << " " << pos.z() << " "  <<
+              q.x() << " " << q.y() << " " << q.z() << " " << q.w() << std::endl;
 
     myfile << pos.x() << " " << pos.y() << " " << pos.z() << " "  <<
               q.x() << " " << q.y() << " " << q.z() << " " << q.w() << "\n";
