@@ -47,6 +47,9 @@
 //for shared_ptr
 #include <boost/shared_ptr.hpp>
 
+//for linear least squares
+#include <Eigen/Dense>
+
 using namespace trakstar;
 using std::string;
 
@@ -216,7 +219,7 @@ int main(int argc, char **argv)
     p->q = q;
     recorded_values.push_back(p);
 
-std::cout << pos.x() << " " << pos.y() << " " << pos.z() << " "  <<
+    std::cout << pos.x() << " " << pos.y() << " " << pos.z() << " "  <<
               q.x() << " " << q.y() << " " << q.z() << " " << q.w() << std::endl;
 
     myfile << pos.x() << " " << pos.y() << " " << pos.z() << " "  <<
@@ -228,6 +231,33 @@ std::cout << pos.x() << " " << pos.y() << " " << pos.z() << " "  <<
   }
 
   myfile.close();
+
+  Eigen::Matrix3f A;
+  Eigen::VectorXf v(recorded_values.size());
+  for(int i=0; i< recorded_values.size()-1; i++)
+  {
+      boost::shared_ptr<DataPoint> data = recorded_values[i];
+      boost::shared_ptr<DataPoint> data1 = recorded_values[i+1];
+
+      Eigen::VectorXf vv(3);
+      Eigen::VectorXf vv1(3);
+
+      vv << data->p.x() , data->p.y(), data->p.z();
+      vv1 << data1->p.x() , data1->p.y(), data1->p.z();
+
+      float x = 2* (data1->p.x() - data->p.x());
+      float y = 2* (data1->p.y() - data->p.y());
+      float z = 2* (data1->p.z() - data->p.z());
+
+      A.row(i) << x, y, z;
+
+
+      v << vv1.squaredNorm() - vv.squaredNorm();
+  }
+
+
+    std::cout << A.jacobiSvd(ComputeThinU | ComputeThinV).solve(v) << std::endl;
+
 
 
 
