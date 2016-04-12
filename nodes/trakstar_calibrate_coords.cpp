@@ -43,6 +43,8 @@
 //writing to file
 #include <fstream>
 
+//for setprecision
+#include <iomanip>
 
 //for shared_ptr
 #include <boost/shared_ptr.hpp>
@@ -213,7 +215,15 @@ int main(int argc, char **argv)
 
     std::cout << "yaw: " << yaw << ", pitch: " << pitch << ", roll: " << roll << std::endl;
     angles_files << "yaw: " << yaw << ", pitch: " << pitch << ", roll: " << roll << std::endl;
-    
+
+  /*  angles_files << "Inverse: " << std::endl;
+    for(int i = 0; i<3; i++)
+    {
+        tf::Vector3 row= Inv.getRow(i);
+        angles_files << "\t" << row[0] << "\t" << row[1] << "\t" << row[2] << std::endl;
+    }
+    */
+    angles_files.close();
 
 
     loop_rate.sleep();
@@ -249,7 +259,7 @@ int main(int argc, char **argv)
       {
       bird_.getCoordinatesQuaternion(i, dX, dY, dZ, quat);
       tf::Vector3 pos(dX, dY, dZ);
-      tf::Quaternion q(-quat[1], -quat[2], -quat[3], quat[0]);
+      tf::Quaternion q(-quat[1], -quat[2], -quat[3], quat[0]);//changes the rotation direction
       tf::Matrix3x3 mat(q);
 
       mat=ros_to_trakstar*mat;
