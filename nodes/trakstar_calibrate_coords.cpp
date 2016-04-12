@@ -288,9 +288,6 @@ int main(int argc, char **argv)
     data_points.close();
 
 
-    	loop_rate.sleep();
-    	ros::spinOnce();
-
     Eigen::Matrix3f A;
     Eigen::VectorXf v(recorded_values.size());
 
@@ -316,8 +313,6 @@ int main(int argc, char **argv)
 
         v << vv1.squaredNorm() - vv.squaredNorm();
 
-    	loop_rate.sleep();
-    	ros::spinOnce();
     }
 
     std::cout << "center point: " << A.fullPivHouseholderQr().solve(v) << std::endl;
