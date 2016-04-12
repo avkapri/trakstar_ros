@@ -1,12 +1,12 @@
 /*********************************************************************
 *
 * This is free and unencumbered software released into the public domain.
-*
+* 
 * Anyone is free to copy, modify, publish, use, compile, sell, or
 * distribute this software, either in source code form or as a compiled
 * binary, for any purpose, commercial or non-commercial, and by any
 * means.
-*
+* 
 * In jurisdictions that recognize copyright laws, the author or authors
 * of this software dedicate any and all copyright interest in the
 * software to the public domain. We make this dedication for the benefit
@@ -14,7 +14,7 @@
 * successors. We intend this dedication to be an overt act of
 * relinquishment in perpetuity of all present and future rights to this
 * software under copyright law.
-*
+* 
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -22,13 +22,13 @@
 * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 * OTHER DEALINGS IN THE SOFTWARE.
-*
+* 
 * For more information, please refer to <http://unlicense.org/>
-*
+* 
 **********************************************************************/
 
-/**
- * Author: Sean Seungkook Yun <seungkook.yun@sri.com>
+/** 
+ * Author: Sean Seungkook Yun <seungkook.yun@sri.com> 
 */
 
 #include <string>
@@ -53,8 +53,7 @@
 using namespace trakstar;
 using std::string;
 
-bool recording = true;
-
+bool recording;
 
 struct DataPoint {
     tf::Vector3 pos;
@@ -80,7 +79,7 @@ int main(int argc, char **argv)
   ROS_INFO("Initializing TRAKSTAR. Please wait....");
   PointATC3DG bird_;
   if( !bird_ ) {
-    ROS_ERROR("can't open trakstar");
+    ROS_ERROR("can't open trakstar"); 
     return -1;
   }
 
@@ -92,7 +91,7 @@ int main(int argc, char **argv)
 
   ROS_INFO("Initialization Complete.");
 
-  bird_.setSuddenOutputChangeLock( 0 );
+  bird_.setSuddenOutputChangeLock( 0 );	
   int num_sen=bird_.getNumberOfSensors();
   ROS_INFO("Number of trakers: %d", num_sen);
 
@@ -109,7 +108,7 @@ int main(int argc, char **argv)
     bird_.setSensorQuaternion(i);
     if (hemisphere_back)
       bird_.setSensorHemisphere(i, HEMISPHERE_REAR);
-    else
+    else 
       bird_.setSensorHemisphere(i, HEMISPHERE_FRONT);
   }
 
@@ -167,16 +166,14 @@ int main(int argc, char **argv)
 
   // mangle the reported pose into the ROS frame conventions
   const tf::Matrix3x3 ros_to_trakstar( -1,  0,  0,
-                              0,  1,  0,
-                              0,  0, -1 );
+                                        0,  1,  0,
+                                        0,  0, -1 );
   ros::Rate loop_rate(frequency);
 
   string raw_file;
-  ROS_INFO("Please hold the UID steady and rotate around the center");
-  ROS_INFO("type \"y\" to start recording data");
+  ROS_INFO("Please hold the UID aligned to the coordinate system");
+  ROS_INFO("type \"y\" to calibrate coordinate system");
   std::cin >> raw_file;
-
-  std::vector<boost::shared_ptr<DataPoint> > recorded_values;
 
   std::cout << "3" << std::endl;
   sleep(1);
@@ -184,89 +181,144 @@ int main(int argc, char **argv)
   sleep(1);
   std::cout << "1" << std::endl;
   sleep(1);
-  std::cout << "RECORDING..." << std::endl;
+  std::cout << "Calibrate.." << std::endl;
 
 
-
-  ros::Timer timer = n.createTimer(ros::Duration(10), stop_recording);
-
-  std::ofstream myfile("/home/devuser/anette/tests/trakstar_test/recorded_data.txt", std::ofstream::out);
-
-  while (recording)
-  {
     std::vector<geometry_msgs::TransformStamped> transforms(num_sen);
 
-    for( int i = 0; i <num_sen  ; ++i )
+    for( int i = 0; i <num_sen  ; ++i ) 
     {
-    bird_.getCoordinatesQuaternion(i, dX, dY, dZ, quat);
-    tf::Vector3 pos(dX, dY, dZ);
-    tf::Quaternion q(-quat[1], -quat[2], -quat[3], quat[0]);
-    tf::Matrix3x3 mat(q);
+	bird_.getCoordinatesQuaternion(i, dX, dY, dZ, quat);
+	tf::Vector3 pos(dX, dY, dZ);
+	tf::Quaternion q(-quat[1], -quat[2], -quat[3], quat[0]);
+	tf::Matrix3x3 mat(q);
 
-    mat=ros_to_trakstar*mat;
+	mat=ros_to_trakstar*mat;
 
-    if (i<1) {
-      mat*=trakstar_attach;
-      pos=ros_to_trakstar*pos+ mat*trakstar_attach_pos;
+	if (i<1) {
+	  mat*=trakstar_attach;
+	  pos=ros_to_trakstar*pos+ mat*trakstar_attach_pos; 
         }
         else {
-      mat*=trakstar_attach1;
-      pos=ros_to_trakstar*pos+ mat*trakstar_attach_pos1;
+	  mat*=trakstar_attach1;
+	  pos=ros_to_trakstar*pos+ mat*trakstar_attach_pos1; 
         }
 
-    boost::shared_ptr<DataPoint> p = boost::make_shared<DataPoint>();
-    p->pos = pos;
-    p->mat = mat;
-    recorded_values.push_back(p);
+    tf::Matrix3x3 Inv = mat.inverse();
+    tfScalar yaw, pitch, roll;
+    Inv.getEulerYPR(yaw, pitch, roll);
 
-    std::cout << pos.x() << " " << pos.y() << " " << pos.z() << " ";
-    myfile << pos.x() << " " << pos.y() << " " << pos.z() << " ";
-    for(int i=0; i<3 ; i++)
-    {
-        tf::Vector3 row = mat.getRow(i);
-        std::cout << row.x() << " " << row.y() << " " << row.z() << " ";
-        myfile << row.x() << " " << row.y() << " " << row.z() << " ";
-    }
-    std::cout << std::endl;
-    myfile << "\n";
+    std::ofstream angles_files("angles_files.txt", std::ofstream::out);
+
+    std::cout << "yaw: " << yaw << ", pitch: " << pitch << ", roll: " << roll << std::endl;
+    angles_files << "yaw: " << yaw << ", pitch: " << pitch << ", roll: " << roll << std::endl;
+    angles_files.close();
 
 
-
-    }
     loop_rate.sleep();
     ros::spinOnce();
-  }
+    }
 
-  myfile.close();
-/*
-  Eigen::Matrix3f A;
-  Eigen::VectorXf v(recorded_values.size());
-  for(int i=0; i< recorded_values.size()-1; i++)
-  {
-      boost::shared_ptr<DataPoint> data = recorded_values[i];
-      boost::shared_ptr<DataPoint> data1 = recorded_values[i+1];
+    std::ofstream data_points("data_points.txt", std::ofstream::out);
 
-      Eigen::VectorXf vv(3);
-      Eigen::VectorXf vv1(3);
+    recording = false;
+    raw_file;
+    ROS_INFO("Please hold the UID steady and rotate around the center");
+    ROS_INFO("type \"y\" to start recording data");
+    std::cin >> raw_file;
 
-      vv << data->p.x() , data->p.y(), data->p.z();
-      vv1 << data1->p.x() , data1->p.y(), data1->p.z();
+    std::vector<boost::shared_ptr<DataPoint> > recorded_values;
 
-      float x = 2* (data1->p.x() - data->p.x());
-      float y = 2* (data1->p.y() - data->p.y());
-      float z = 2* (data1->p.z() - data->p.z());
+    std::cout << "3" << std::endl;
+    sleep(1);
+    std::cout << "2" << std::endl;
+    sleep(1);
+    std::cout << "1" << std::endl;
+    sleep(1);
+    std::cout << "RECORDING..." << std::endl;
 
-      A.row(i) << x, y, z;
+    ros::Timer timer = n.createTimer(ros::Duration(20), stop_recording);
+
+    while (recording)
+    {
+      std::vector<geometry_msgs::TransformStamped> transforms(num_sen);
+
+      for( int i = 0; i <num_sen  ; ++i )
+      {
+      bird_.getCoordinatesQuaternion(i, dX, dY, dZ, quat);
+      tf::Vector3 pos(dX, dY, dZ);
+      tf::Quaternion q(-quat[1], -quat[2], -quat[3], quat[0]);
+      tf::Matrix3x3 mat(q);
+
+      mat=ros_to_trakstar*mat;
+
+      if (i<1) {
+        mat*=trakstar_attach;
+        pos=ros_to_trakstar*pos+ mat*trakstar_attach_pos;
+          }
+          else {
+        mat*=trakstar_attach1;
+        pos=ros_to_trakstar*pos+ mat*trakstar_attach_pos1;
+          }
+
+      boost::shared_ptr<DataPoint> p = boost::make_shared<DataPoint>();
+      p->pos = pos;
+      p->mat = mat;
+      recorded_values.push_back(p);
+
+      std::cout << pos.x() << " " << pos.y() << " " << pos.z() << " ";
+      data_points << pos.x() << " " << pos.y() << " " << pos.z() << " ";
+      for(int i=0; i<3 ; i++)
+      {
+          tf::Vector3 row = mat.getRow(i);
+          std::cout << row.x() << " " << row.y() << " " << row.z() << " ";
+          data_points << row.x() << " " << row.y() << " " << row.z() << " ";
+      }
+      std::cout << std::endl;
+      data_points << "\n";
 
 
-      v << vv1.squaredNorm() - vv.squaredNorm();
-  }
+
+      }
+      loop_rate.sleep();
+      ros::spinOnce();
+    }
+    data_points.close();
 
 
-    std::cout << A.jacobiSvd(ComputeThinU | ComputeThinV).solve(v) << std::endl;
 
-*/
+    Eigen::Matrix3f A;
+    Eigen::VectorXf v(recorded_values.size());
 
+    std::random_shuffle ( recorded_values.begin(), recorded_values.end() );
+
+    for(int i=0; i< recorded_values.size()-1; i++)
+    {
+        boost::shared_ptr<DataPoint> data = recorded_values[i];
+        boost::shared_ptr<DataPoint> data1 = recorded_values[i+1];
+
+        Eigen::VectorXf vv(3);
+        Eigen::VectorXf vv1(3);
+
+        vv << data->pos.x() , data->pos.y(), data->pos.z();
+        vv1 << data1->pos.x() , data1->pos.y(), data1->pos.z();
+
+        float x = 2* (data1->pos.x() - data->pos.x());
+        float y = 2* (data1->pos.y() - data->pos.y());
+        float z = 2* (data1->pos.z() - data->pos.z());
+
+        A.row(i) << x, y, z;
+
+
+        v << vv1.squaredNorm() - vv.squaredNorm();
+    }
+
+    std::cout << "center point: " << A.fullPivHouseholderQr().solve(v) << std::endl;
+
+
+    //TODO:
+    // 1. get offset for each point in global coordinate system
+    // 2. transform that offset into each local coordinate system by multiplying with the inverse
 
   delete [] quat;
 }
