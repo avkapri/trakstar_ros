@@ -185,6 +185,7 @@ int main(int argc, char **argv)
 
 
     std::vector<geometry_msgs::TransformStamped> transforms(num_sen);
+   std::ofstream angles_files("/home/devuser/anette/tests/trakstar_test/angles_files.txt", std::ofstream::out);
 
     for( int i = 0; i <num_sen  ; ++i ) 
     {
@@ -208,20 +209,20 @@ int main(int argc, char **argv)
     tfScalar yaw, pitch, roll;
     Inv.getEulerYPR(yaw, pitch, roll);
 
-    std::ofstream angles_files("angles_files.txt", std::ofstream::out);
+ 
 
     std::cout << "yaw: " << yaw << ", pitch: " << pitch << ", roll: " << roll << std::endl;
     angles_files << "yaw: " << yaw << ", pitch: " << pitch << ", roll: " << roll << std::endl;
-    angles_files.close();
+    
 
 
     loop_rate.sleep();
     ros::spinOnce();
     }
 
-    std::ofstream data_points("data_points.txt", std::ofstream::out);
+    std::ofstream data_points("/home/devuser/anette/tests/trakstar_test/data_points.txt", std::ofstream::out);
 
-    recording = false;
+    
     raw_file;
     ROS_INFO("Please hold the UID steady and rotate around the center");
     ROS_INFO("type \"y\" to start recording data");
@@ -236,6 +237,7 @@ int main(int argc, char **argv)
     std::cout << "1" << std::endl;
     sleep(1);
     std::cout << "RECORDING..." << std::endl;
+    recording = true;
 
     ros::Timer timer = n.createTimer(ros::Duration(20), stop_recording);
 
@@ -286,6 +288,8 @@ int main(int argc, char **argv)
     data_points.close();
 
 
+    	loop_rate.sleep();
+    	ros::spinOnce();
 
     Eigen::Matrix3f A;
     Eigen::VectorXf v(recorded_values.size());
@@ -311,10 +315,14 @@ int main(int argc, char **argv)
 
 
         v << vv1.squaredNorm() - vv.squaredNorm();
+
+    	loop_rate.sleep();
+    	ros::spinOnce();
     }
 
     std::cout << "center point: " << A.fullPivHouseholderQr().solve(v) << std::endl;
-
+angles_files << "center point: " << A.fullPivHouseholderQr().solve(v) << "\n";
+	angles_files.close();
 
     //TODO:
     // 1. get offset for each point in global coordinate system

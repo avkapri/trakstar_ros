@@ -19,7 +19,7 @@
   <arg name="hemisphere_back" default="false" />
   <arg name="range_72inch" default="false" />
 
-  <node pkg="trakstar" type="trakstar_calib" name="trakstar_driver" output="screen" >
+  <node pkg="trakstar" type="trakstar_calib_coords" name="trakstar_driver" output="screen" >
     <param name="publish_tf"    type="bool"   value="$(arg publish_tf)" />
     <param name="pivot_x" type="double" value="$(arg px)" />
     <param name="pivot_y" type="double" value="$(arg py)" />
