@@ -180,8 +180,6 @@ int main(int argc, char **argv)
   ROS_INFO("type \"y\" to calibrate coordinate system");
   std::cin >> raw_file;
 
-  std::cout << "3" << std::endl;
-  sleep(1);
   std::cout << "2" << std::endl;
   sleep(1);
   std::cout << "1" << std::endl;
