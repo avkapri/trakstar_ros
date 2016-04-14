@@ -218,10 +218,8 @@ int main(int argc, char **argv)
     double d_roll = angles::to_degrees(roll);
  
 
-
-    std::cout << "radians yaw: " << yaw << ", pitch: " << pitch << ", roll: " << roll << std::endl;
-    angles_files << "radians yaw: " << yaw << ", pitch: " << pitch << ", roll: " << roll << std::endl;
-    angles_files << "degrees yaw: " << d_yaw << ", pitch: " << d_pitch << ", roll: " << d_roll << std::endl;
+    std::cout << "yaw: " << std::setprecision(10) << yaw << ", pitch: " << pitch << ", roll: " << roll << std::endl;
+    angles_files << "yaw: " << std::setprecision(10) << yaw << ", pitch: " << pitch << ", roll: " << roll << std::endl;
 
   /*  angles_files << "Inverse: " << std::endl;
     for(int i = 0; i<3; i++)
@@ -285,13 +283,13 @@ int main(int argc, char **argv)
       p->mat = mat;
       recorded_values.push_back(p);
 
-      std::cout << pos.x() << " " << pos.y() << " " << pos.z() << " ";
-      data_points << pos.x() << " " << pos.y() << " " << pos.z() << " ";
+      std::cout << std::setprecision(10) << pos.x() << " " << pos.y() << " " << pos.z() << " ";
+      data_points << std::setprecision(10) << pos.x() << " " << pos.y() << " " << pos.z() << " ";
       for(int i=0; i<3 ; i++)
       {
           tf::Vector3 row = mat.getRow(i);
-          std::cout << row.x() << " " << row.y() << " " << row.z() << " ";
-          data_points << row.x() << " " << row.y() << " " << row.z() << " ";
+          std::cout << std::setprecision(10) << row.x() << " " << row.y() << " " << row.z() << " ";
+          data_points << std::setprecision(10) << row.x() << " " << row.y() << " " << row.z() << " ";
       }
       std::cout << std::endl;
       data_points << "\n";
