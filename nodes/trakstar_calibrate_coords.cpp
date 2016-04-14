@@ -52,6 +52,9 @@
 //for linear least squares
 #include <Eigen/Dense>
 
+//to convert from radians to degrees
+#include <angles/angles.h>
+
 using namespace trakstar;
 using std::string;
 
@@ -210,11 +213,15 @@ int main(int argc, char **argv)
     tf::Matrix3x3 Inv = mat.inverse();
     tfScalar yaw, pitch, roll;
     Inv.getEulerYPR(yaw, pitch, roll);
-
+    double d_yaw = angles::to_degrees(yaw);
+    double d_pitch = angles::to_degrees(pitch);
+    double d_roll = angles::to_degrees(roll);
  
 
-    std::cout << "yaw: " << yaw << ", pitch: " << pitch << ", roll: " << roll << std::endl;
-    angles_files << "yaw: " << yaw << ", pitch: " << pitch << ", roll: " << roll << std::endl;
+
+    std::cout << "radians yaw: " << yaw << ", pitch: " << pitch << ", roll: " << roll << std::endl;
+    angles_files << "radians yaw: " << yaw << ", pitch: " << pitch << ", roll: " << roll << std::endl;
+    angles_files << "degrees yaw: " << d_yaw << ", pitch: " << d_pitch << ", roll: " << d_roll << std::endl;
 
   /*  angles_files << "Inverse: " << std::endl;
     for(int i = 0; i<3; i++)
